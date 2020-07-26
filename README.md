@@ -1,5 +1,7 @@
 # Server Sent Events with Redis Pub Sub
 
+See `application.properties` for configurable values.
+
 ## Pre-requisite
 Redis is installed locally and is running. Use `brew install redis` if you don't have Redis installed (OSX.)
 
