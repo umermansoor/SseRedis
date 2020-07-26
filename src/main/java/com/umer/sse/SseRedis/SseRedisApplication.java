@@ -8,7 +8,6 @@ public class SseRedisApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SseRedisApplication.class, args);
-
 	}
 
 }
