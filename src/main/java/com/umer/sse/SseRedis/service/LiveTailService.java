@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
@@ -25,6 +26,9 @@ public class LiveTailService {
     @Autowired
     RedisMessageListenerContainer redisContainer;
 
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
     private static final Logger logger = LoggerFactory.getLogger(LiveTailService.class);
 
     /**
@@ -34,7 +38,7 @@ public class LiveTailService {
      * @param channelName Redis channel name
      * @return new instance of {@link SseEmitter}
      */
-    public SseEmitter newSseEmitterForRedisChannel(String channelName) {
+    public SseEmitter newSseEmitterForRedisChannel(final String channelName) {
         final SseEmitter emitter = new SseEmitter(TimeUnit.MINUTES.toMillis(timeout));
 
         MessageListener messageListener = (message, pattern) -> {
@@ -55,7 +59,7 @@ public class LiveTailService {
 
         MessageListenerAdapter listenerAdapter = new MessageListenerAdapter(messageListener);
 
-        redisContainer.addMessageListener(listenerAdapter, new PatternTopic(channelName));
+        redisContainer.addMessageListener(listenerAdapter, new PatternTopic(getChannelNameWithPrefix(channelName)));
         logger.info("Added emitter {} from listenerAdapter {}", emitter, listenerAdapter);
 
         emitter.onCompletion(() -> {
@@ -64,5 +68,14 @@ public class LiveTailService {
         });
 
         return emitter;
+    }
+
+    public void publicMessageToRedisChannel(String channelName, String message) {
+        redisTemplate.convertAndSend(getChannelNameWithPrefix(channelName), message);
+    }
+
+    // Add a prefix to the channel name (Not aware of a way of finding all channels using wildcard in Redis)
+    private String getChannelNameWithPrefix(String channelName) {
+        return "pubsub:" + channelName;
     }
 }
